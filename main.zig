@@ -5,6 +5,13 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Child = std.meta.Child;
 
+/// Returns the type of item the iterator holds
+///
+/// # example
+///     ```
+///     var iter = std.mem.tokenize(u8, "hi there world", " ");
+///     std.debug.assert(Item(@TypeOf(iter)) == []const u8);
+///     ```
 pub fn Item(comptime Iter: type) type {
     if (!@hasDecl(Iter, "next"))
         @compileError("iterator must have 'next' function");
@@ -39,6 +46,27 @@ pub fn Item(comptime Iter: type) type {
     };
 }
 
+test "Item" {
+    var iter = std.mem.tokenize(u8, "hi there world", " ");
+    try testing.expectEqual([]const u8, Item(@TypeOf(iter)));
+}
+
+/// Returns the error set of the iterator's `next` function
+///
+/// This library supports iterators which can fail. This function will return the error set of
+/// such iterators or `null` if they can't fail.
+///
+/// # examples
+///     ```
+///     var iter = std.mem.tokenize(u8, "hi there world", " ");
+///     std.debug.assert(IterError(@TypeOf(iter)) == null);
+///     ```
+///
+///     ```
+///     var dir = someIterableDirFromSomewhere();
+///     const walker = try dir.walk();
+///     std.debug.assert(IterError(@TypeOf(walker)) ==
+///     ```
 pub fn IterError(comptime Iter: type) ?type {
     if (!@hasDecl(Iter, "next"))
         @compileError("iterator must have 'next' function");
@@ -73,6 +101,22 @@ pub fn IterError(comptime Iter: type) ?type {
     };
 }
 
+test "IterError" {
+    var iter = std.mem.tokenize(u8, "hi there world", " ");
+    try testing.expectEqual(@as(?type, null), IterError(@TypeOf(iter)));
+
+    const dir = testing.tmpIterableDir(.{}).iterable_dir;
+    var walker = try dir.walk(testing.allocator);
+    defer walker.deinit();
+    try testing.expectEqual(
+        @as(?type, @typeInfo(
+            @typeInfo(@TypeOf(std.fs.IterableDir.Walker.next)).Fn.return_type.?,
+        ).ErrorUnion.error_set),
+        IterError(@TypeOf(walker)),
+    );
+}
+
+/// Iter type for iterating over slice values
 pub fn SliceIter(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -80,6 +124,7 @@ pub fn SliceIter(comptime T: type) type {
         slice: []const T,
         index: usize = 0,
 
+        /// Creates an iterator iterating over values in slice
         pub fn init(slice: []const T) Self {
             return .{ .slice = slice };
         }
@@ -106,6 +151,9 @@ test "SliceIter" {
     try testing.expectEqual(@as(?u32, null), iter.next());
 }
 
+/// Iter type for mapping another iterator with a function
+///
+/// See `map` for more info.
 pub fn MapIter(comptime BaseIter: type, comptime Dest: type) type {
     return struct {
         const Self = @This();
@@ -129,6 +177,7 @@ pub fn MapIter(comptime BaseIter: type, comptime Dest: type) type {
     };
 }
 
+/// Returns the destination type for a given base iterator and function type
 pub fn MapDestType(comptime BaseIter: type, comptime Func: type) type {
     const Source = Item(BaseIter);
 
@@ -146,6 +195,11 @@ pub fn MapDestType(comptime BaseIter: type, comptime Func: type) type {
     return func.return_type.?;
 }
 
+/// Returns a new iterator which maps items in iter using func as a function.
+///
+/// iter must be an iterator, meaning it has to be a type containing a next method which returns
+/// an optional. func must be a unary function for which it's first argument type is the iterator's
+/// item type.
 pub fn map(
     iter: anytype,
     func: anytype,
@@ -196,6 +250,9 @@ test "MapIter error" {
     try testing.expectError(error.TestErrorIterError, iter.next());
 }
 
+/// Iter type for filtering another iterator with a predicate
+///
+/// See `filter` for more info.
 pub fn FilterIter(comptime BaseIter: type) type {
     return struct {
         const Self = @This();
@@ -219,6 +276,10 @@ pub fn FilterIter(comptime BaseIter: type) type {
     };
 }
 
+/// Returns a new iterator which filters items in iter with predicate
+///
+/// iter must be an iterator, meaning it has to be a type containing a next method which returns
+/// an optional.
 pub fn filter(
     iter: anytype,
     predicate: *const fn (Item(@TypeOf(iter))) bool,
@@ -267,6 +328,7 @@ test "FilterIter error" {
     try testing.expectError(error.TestErrorIterError, iter.next());
 }
 
+/// Returns the return type to be used in `toSlice`
 pub fn ToSlice(comptime Iter: type) type {
     return if (IterError(Iter)) |ES|
         (error{IterTooLong} || ES)![]Item(Iter)
@@ -274,6 +336,10 @@ pub fn ToSlice(comptime Iter: type) type {
         error{IterTooLong}![]Item(Iter);
 }
 
+/// Collects the items of an iterator in a buffer slice.
+///
+/// If the buffer is not big enough `error.IterTooLong` is returned. Otherwise, the slice containing
+/// all items is returned. This slice will always be at the start of buffer.
 pub fn toSlice(
     iter: anytype,
     buffer: []Item(Child(@TypeOf(iter))),
@@ -307,6 +373,7 @@ test "toSlice error" {
     try testing.expectError(error.TestErrorIterError, toSlice(&iter, &buffer));
 }
 
+/// Returns the return type to be used in `toSliceAlloc`
 pub fn ToSliceAlloc(comptime Iter: type) type {
     return if (IterError(Iter)) |ES|
         (Allocator.Error || ES)![]Item(Iter)
@@ -314,6 +381,7 @@ pub fn ToSliceAlloc(comptime Iter: type) type {
         Allocator.Error![]Item(Iter);
 }
 
+/// Collects the items of an iterator in an allocated slice.
 pub fn toSliceAlloc(
     iter: anytype,
     allocator: Allocator,
@@ -343,6 +411,7 @@ test "toSliceAlloc error" {
     try testing.expectError(error.TestErrorIterError, toSliceAlloc(&iter, testing.allocator));
 }
 
+/// Returns the return type to be used in `reduce`
 pub fn Reduce(comptime Iter: type, comptime T: type) type {
     return if (IterError(Iter)) |ES|
         ES!T
@@ -350,6 +419,9 @@ pub fn Reduce(comptime Iter: type, comptime T: type) type {
         T;
 }
 
+/// Applies a binary operator between all items in iter with an initial element.
+///
+/// Also know as fold in functional languages.
 pub fn reduce(
     iter: anytype,
     comptime T: type,
@@ -389,6 +461,7 @@ test "reduce error" {
     try testing.expectError(error.TestErrorIterError, reduce(&iter, u64, add, 0));
 }
 
+/// Returns the return type to be used in `reduce1`
 pub fn Reduce1(comptime Iter: type) type {
     return if (IterError(Iter)) |ES|
         (error{EmptyIterator} || ES)!Item(Iter)
@@ -396,6 +469,11 @@ pub fn Reduce1(comptime Iter: type) type {
         error{EmptyIterator}!Item(Iter);
 }
 
+/// Applies a binary operator between all items in iter with no initial element.
+///
+/// If the iterator is empty `error.EmptyIter` is returned.
+///
+/// Also know as fold1 in functional languages.
 pub fn reduce1(
     iter: anytype,
     func: *const fn (
@@ -405,7 +483,7 @@ pub fn reduce1(
 ) Reduce1(Child(@TypeOf(iter))) {
     const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
     const maybe_init = if (has_error) try iter.next() else iter.next();
-    const init = maybe_init orelse return error.EmptyIterator;
+    const init = maybe_init orelse return error.EmptyIter;
     return reduce(iter, Item(Child(@TypeOf(iter))), func, init);
 }
 
@@ -420,7 +498,7 @@ test "reduce1" {
     }.add;
 
     try testing.expectEqual(@as(u32, 10), try reduce1(&iter, add));
-    try testing.expectError(error.EmptyIterator, reduce1(&iter, add));
+    try testing.expectError(error.EmptyIter, reduce1(&iter, add));
 }
 
 test "reduce1 error" {
