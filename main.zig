@@ -484,3 +484,20 @@ test "chaining" {
 
     try testing.expectEqual(@as(u128, 102), result);
 }
+
+test "tokenize" {
+    const string = "hi there world";
+    var tokens = std.mem.tokenize(u8, string, " ");
+
+    const length = struct {
+        fn length(x: []const u8) usize {
+            return x.len;
+        }
+    }.length;
+
+    var iter = map(tokens, length);
+    var buffer: [10]usize = undefined;
+    const lengths = try toSlice(&iter, &buffer);
+
+    try testing.expectEqualSlices(usize, &.{ 2, 5, 5 }, lengths);
+}
