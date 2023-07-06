@@ -20,6 +20,7 @@ pub const EmptyIter = empty_iter.EmptyIter;
 const map_iter = @import("map_iter.zig");
 pub const map = map_iter.map;
 pub const MapIter = map_iter.MapIter;
+pub const MapDestType = map_iter.MapDestType;
 const filter_iter = @import("filter_iter.zig");
 pub const filter = filter_iter.filter;
 pub const FilterIter = filter_iter.FilterIter;
@@ -33,6 +34,13 @@ pub const reduce = reduce_namespace.reduce;
 pub const Reduce = reduce_namespace.Reduce;
 pub const reduce1 = reduce_namespace.reduce1;
 pub const Reduce1 = reduce_namespace.Reduce1;
+const filter_map_iter = @import("filter_map_iter.zig");
+pub const filterMap = filter_map_iter.filterMap;
+pub const FilterMapIter = filter_map_iter.FilterMapIter;
+pub const FilterMapDestType = filter_map_iter.FilterMapDestType;
+const flatten_iter = @import("flatten_iter.zig");
+pub const flatten = flatten_iter.flatten;
+pub const FlattenIter = flatten_iter.FlattenIter;
 
 test {
     testing.refAllDeclsRecursive(@This());
