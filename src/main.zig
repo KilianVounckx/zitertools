@@ -151,6 +151,7 @@ test "SliceIter" {
     try testing.expectEqual(@as(?u32, null), iter.next());
 }
 
+/// A (half-open) range iterator bounded inclusively below and exclusively above [start, end).
 pub fn RangeIter(comptime T: type) type {
     if (!std.meta.trait.isNumber(T))
         @compileError("RangeIter Item type must be a number");
@@ -189,6 +190,7 @@ pub fn RangeIter(comptime T: type) type {
     };
 }
 
+/// Creates a `RangeIter`. See its documentation for more info.
 pub fn range(comptime T: type, start: T, end: T) RangeIter(T) {
     return RangeIter(T).init(start, end);
 }
