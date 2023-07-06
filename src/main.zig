@@ -471,7 +471,7 @@ pub fn Reduce1(comptime Iter: type) type {
 
 /// Applies a binary operator between all items in iter with no initial element.
 ///
-/// If the iterator is empty `error.EmptyIter` is returned.
+/// If the iterator is empty `error.EmptyIterator` is returned.
 ///
 /// Also know as fold1 in functional languages.
 pub fn reduce1(
@@ -483,7 +483,7 @@ pub fn reduce1(
 ) Reduce1(Child(@TypeOf(iter))) {
     const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
     const maybe_init = if (has_error) try iter.next() else iter.next();
-    const init = maybe_init orelse return error.EmptyIter;
+    const init = maybe_init orelse return error.EmptyIterator;
     return reduce(iter, Item(Child(@TypeOf(iter))), func, init);
 }
 
@@ -498,7 +498,7 @@ test "reduce1" {
     }.add;
 
     try testing.expectEqual(@as(u32, 10), try reduce1(&iter, add));
-    try testing.expectError(error.EmptyIter, reduce1(&iter, add));
+    try testing.expectError(error.EmptyIterator, reduce1(&iter, add));
 }
 
 test "reduce1 error" {
