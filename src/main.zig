@@ -163,14 +163,6 @@ pub fn RangeIter(comptime T: type) type {
         end: T,
         step: T,
 
-        pub fn init(start: T, end: T) Self {
-            return .{
-                .current = start,
-                .end = end,
-                .step = 1,
-            };
-        }
-
         pub fn stepBy(self: Self, step: T) Self {
             return .{
                 .current = self.current,
@@ -192,7 +184,7 @@ pub fn RangeIter(comptime T: type) type {
 
 /// Creates a `RangeIter`. See its documentation for more info.
 pub fn range(comptime T: type, start: T, end: T) RangeIter(T) {
-    return RangeIter(T).init(start, end);
+    return .{ .current = start, .end = end, .step = 1 };
 }
 
 test "RangeIter" {
@@ -217,6 +209,176 @@ test "RangeIter reverse" {
     try testing.expectEqual(@as(?i32, 1), iter.next());
     try testing.expectEqual(@as(?i32, null), iter.next());
     try testing.expectEqual(@as(?i32, null), iter.next());
+}
+
+/// An iterator that links two iterators together, in a chain.
+///
+/// See `chain` for more info.
+pub fn Chain(comptime A: type, comptime B: type) type {
+    if (Item(A) != Item(B))
+        @compileError("Both chain iterators must yield the same type");
+    const Dest = Item(A);
+
+    return struct {
+        const Self = @This();
+
+        a: A,
+        b: B,
+        a_done: bool,
+
+        pub const Next = if (IterError(A)) |ESA|
+            if (IterError(B)) |ESB|
+                (ESA || ESB)!?Dest
+            else
+                ESA!?Dest
+        else if (IterError(B)) |ESB|
+            ESB!?Dest
+        else
+            ?Dest;
+
+        pub fn next(self: *Self) Next {
+            const a_has_error = comptime IterError(A) != null;
+            const b_has_error = comptime IterError(B) != null;
+            if (!self.a_done) {
+                const maybe_a = if (a_has_error)
+                    try self.a.next()
+                else
+                    self.a.next();
+                if (maybe_a) |a|
+                    return a;
+                self.a_done = true;
+            }
+            return if (b_has_error)
+                try self.b.next()
+            else
+                self.b.next();
+        }
+    };
+}
+
+/// Takes two iterators and creates a new iterator over both in sequence.
+///
+/// chain() will return a new iterator which will first iterate over values from
+/// the first iterator and then over values from the second iterator.
+///
+/// In other words, it links two iterators together, in a chain. 🔗
+pub fn chain(iter1: anytype, iter2: anytype) Chain(@TypeOf(iter1), @TypeOf(iter2)) {
+    return .{ .a = iter1, .b = iter2, .a_done = false };
+}
+
+test "Chain" {
+    var iter1 = SliceIter(u32).init(&.{ 1, 2, 3 });
+    var iter2 = range(u32, 5, 8);
+    var iter = chain(iter1, iter2);
+    try testing.expectEqual(u32, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?u32, 1), iter.next());
+    try testing.expectEqual(@as(?u32, 2), iter.next());
+    try testing.expectEqual(@as(?u32, 3), iter.next());
+    try testing.expectEqual(@as(?u32, 5), iter.next());
+    try testing.expectEqual(@as(?u32, 6), iter.next());
+    try testing.expectEqual(@as(?u32, 7), iter.next());
+    try testing.expectEqual(@as(?u32, null), iter.next());
+}
+
+test "Chain error in iter1" {
+    var iter1 = TestErrorIter.init(3);
+    var iter2 = range(usize, 5, 8);
+    var iter = chain(iter1, iter2);
+    try testing.expectEqual(usize, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?usize, 0), try iter.next());
+    try testing.expectEqual(@as(?usize, 1), try iter.next());
+    try testing.expectEqual(@as(?usize, 2), try iter.next());
+    try testing.expectError(error.TestErrorIterError, iter.next());
+}
+
+test "Chain error in iter2" {
+    var iter1 = range(usize, 5, 8);
+    var iter2 = TestErrorIter.init(3);
+    var iter = chain(iter1, iter2);
+    try testing.expectEqual(usize, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?usize, 5), try iter.next());
+    try testing.expectEqual(@as(?usize, 6), try iter.next());
+    try testing.expectEqual(@as(?usize, 7), try iter.next());
+    try testing.expectEqual(@as(?usize, 0), try iter.next());
+    try testing.expectEqual(@as(?usize, 1), try iter.next());
+    try testing.expectEqual(@as(?usize, 2), try iter.next());
+    try testing.expectError(error.TestErrorIterError, iter.next());
+}
+
+/// An iterator that repeats endlessly.
+///
+/// See `cycle` for more info.
+pub fn Cycle(comptime BaseIter: type) type {
+    return struct {
+        const Self = @This();
+
+        orig_iter: BaseIter,
+        base_iter: BaseIter,
+
+        pub const Next = if (IterError(BaseIter)) |ES| ES!?Item(BaseIter) else ?Item(BaseIter);
+
+        pub fn next(self: *Self) Next {
+            const has_error = comptime IterError(BaseIter) != null;
+
+            const maybe_item = if (has_error)
+                try self.base_iter.next()
+            else
+                self.base_iter.next();
+
+            if (maybe_item) |item| {
+                return item;
+            } else {
+                self.base_iter = self.orig_iter;
+                return if (has_error)
+                    try self.base_iter.next()
+                else
+                    self.base_iter.next();
+            }
+        }
+    };
+}
+
+/// Repeats an iterator endlessly.
+///
+/// Instead of stopping at None, the iterator will instead start again, from the
+/// beginning. After iterating again, it will start at the beginning again.
+/// And again. And again. Forever. Note that in case the original iterator is
+/// empty, the resulting iterator will also be empty.
+pub fn cycle(iter: anytype) Cycle(@TypeOf(iter)) {
+    return .{ .orig_iter = iter, .base_iter = iter };
+}
+
+test "Cycle" {
+    var base_iter = range(u32, 0, 3);
+    var iter = cycle(base_iter);
+    try std.testing.expectEqual(u32, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?u32, 0), iter.next());
+    try testing.expectEqual(@as(?u32, 1), iter.next());
+    try testing.expectEqual(@as(?u32, 2), iter.next());
+    try testing.expectEqual(@as(?u32, 0), iter.next());
+    try testing.expectEqual(@as(?u32, 1), iter.next());
+    try testing.expectEqual(@as(?u32, 2), iter.next());
+    try testing.expectEqual(@as(?u32, 0), iter.next());
+    try testing.expectEqual(@as(?u32, 1), iter.next());
+}
+
+/// An iterator that yields nothing.
+pub fn Empty(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        pub fn next(self: Self) ?T {
+            _ = self;
+            return null;
+        }
+    };
+}
+
+test "Empty" {
+    var iter = Empty(u32){};
+    try std.testing.expectEqual(u32, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?u32, null), iter.next());
+    try testing.expectEqual(@as(?u32, null), iter.next());
 }
 
 /// Iter type for mapping another iterator with a function
