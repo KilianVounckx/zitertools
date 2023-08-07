@@ -41,6 +41,9 @@ pub const FilterMapDestType = filter_map_iter.FilterMapDestType;
 const flatten_iter = @import("flatten_iter.zig");
 pub const flatten = flatten_iter.flatten;
 pub const FlattenIter = flatten_iter.FlattenIter;
+const once_iter = @import("once_iter.zig");
+pub const once = once_iter.once;
+pub const OnceIter = once_iter.OnceIter;
 
 test {
     testing.refAllDeclsRecursive(@This());
