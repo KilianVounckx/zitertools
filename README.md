@@ -1,4 +1,4 @@
-# Zitertools
+# Zig Itertools
 
 A toy iterator package for [zig](ziglang.org). Check the tests for examples.
 
