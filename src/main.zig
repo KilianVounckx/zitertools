@@ -65,6 +65,9 @@ pub const TakeIter = take_iter.TakeIter;
 const take_while_iter = @import("take_while_iter.zig");
 pub const takeWhile = take_while_iter.takeWhile;
 pub const TakeWhileIter = take_while_iter.TakeWhileIter;
+const zip_iter = @import("zip_iter.zig");
+pub const zip = zip_iter.zip;
+pub const ZipIter = zip_iter.ZipIter;
 
 test {
     testing.refAllDeclsRecursive(@This());
