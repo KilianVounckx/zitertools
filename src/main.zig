@@ -53,6 +53,9 @@ pub const RepeatIter = repeat_iter.RepeatIter;
 const skip_iter = @import("skip_iter.zig");
 pub const skip = skip_iter.skip;
 pub const SkipIter = skip_iter.SkipIter;
+const skip_while_iter = @import("skip_while_iter.zig");
+pub const skipWhile = skip_while_iter.skipWhile;
+pub const SkipWhileIter = skip_while_iter.SkipWhileIter;
 
 test {
     testing.refAllDeclsRecursive(@This());

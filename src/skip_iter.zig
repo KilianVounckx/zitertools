@@ -48,7 +48,7 @@ pub fn skip(iter: anytype, to_skip: usize) SkipIter(@TypeOf(iter)) {
     return .{ .base_iter = iter, .to_skip = to_skip };
 }
 
-test "enumerate" {
+test "skip" {
     var base_iter = range(u32, 5, 10);
     var iter = skip(base_iter, 2);
     try testing.expectEqual(Item(@TypeOf(base_iter)), Item(@TypeOf(iter)));
