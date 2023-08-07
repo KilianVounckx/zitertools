@@ -2,6 +2,8 @@
 
 A toy iterator package for [zig](ziglang.org). Check the tests for examples.
 
+This package is heavily based on rust's `std::iter` module.
+
 ## Usage
 
 To use this package, use the zig package manager. For example in your build.zig.zon file, put:
