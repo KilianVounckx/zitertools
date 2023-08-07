@@ -5,6 +5,8 @@ const itertools = @import("main.zig");
 const Item = itertools.Item;
 
 /// An iterator that yields nothing.
+///
+/// See `empty` for more info.
 pub fn EmptyIter(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -16,6 +18,7 @@ pub fn EmptyIter(comptime T: type) type {
     };
 }
 
+/// Creates an iterator that yields nothing.
 pub fn empty(comptime T: type) EmptyIter(T) {
     return .{};
 }

@@ -6,7 +6,7 @@ const Item = itertools.Item;
 
 /// An iterator that yields an element exactly once.
 ///
-/// See `once` for more info.
+/// See `empty` for more info.
 pub fn OnceIter(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -21,6 +21,12 @@ pub fn OnceIter(comptime T: type) type {
     };
 }
 
+/// Creates an iterator that yields an element exactly once.
+///
+/// This is commonly used to adapt a single value into a `chain()` of other
+/// kinds of iteration. Maybe you have an iterator that covers almost
+/// everything, but you need an extra special case. Maybe you have a function
+/// which works on iterators, but you only need to process one value.
 pub fn once(value: anytype) OnceIter(@TypeOf(value)) {
     return .{ .value = value };
 }
