@@ -59,6 +59,9 @@ pub const SkipWhileIter = skip_while_iter.SkipWhileIter;
 const successors_iter = @import("successors_iter.zig");
 pub const successors = successors_iter.successors;
 pub const SuccessorsIter = successors_iter.SuccessorsIter;
+const take_iter = @import("take_iter.zig");
+pub const take = take_iter.take;
+pub const TakeIter = take_iter.TakeIter;
 
 test {
     testing.refAllDeclsRecursive(@This());
