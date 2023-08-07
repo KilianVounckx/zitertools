@@ -168,7 +168,7 @@ test "IterError" {
 
 test "tokenize" {
     const string = "hi there world";
-    var tokens = std.mem.tokenize(u8, string, " ");
+    var tokens = std.mem.tokenizeAny(u8, string, " ");
 
     const length = struct {
         fn length(x: []const u8) usize {
