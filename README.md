@@ -1,6 +1,8 @@
-# Zitertools
+# Zig Itertools
 
 A toy iterator package for [zig](ziglang.org). Check the tests for examples.
+
+This package is heavily based on rust's `std::iter` module.
 
 ## Usage
 
