@@ -4,7 +4,6 @@ const testing = std.testing;
 const itertools = @import("main.zig");
 const Item = itertools.Item;
 
-/// An iterator that yields nothing.
 /// An iterator that yields an element exactly once.
 ///
 /// See `once` for more info.
