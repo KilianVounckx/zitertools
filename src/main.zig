@@ -44,6 +44,9 @@ pub const FlattenIter = flatten_iter.FlattenIter;
 const once_iter = @import("once_iter.zig");
 pub const once = once_iter.once;
 pub const OnceIter = once_iter.OnceIter;
+const peekable_iter = @import("peekable_iter.zig");
+pub const peekable = peekable_iter.peekable;
+pub const PeekableIter = peekable_iter.PeekableIter;
 
 test {
     testing.refAllDeclsRecursive(@This());
