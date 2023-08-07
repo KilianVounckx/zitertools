@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const module = b.addModule(.{
+    const module = b.addModule("itertools", .{
         .source_file = .{ .path = "src/main.zig" },
     });
 
