@@ -4,7 +4,7 @@ const testing = std.testing;
 const itertools = @import("main.zig");
 const Item = itertools.Item;
 const IterError = itertools.IterError;
-const SliceIter = itertools.SliceIter;
+const sliceIter = itertools.sliceIter;
 
 /// Iter type for filtering another iterator with a predicate
 ///
@@ -45,7 +45,7 @@ pub fn filter(
 
 test "FilterIter" {
     const slice: []const u32 = &.{ 1, 2, 3, 4, 5, 6, 7, 8 };
-    var slice_iter = SliceIter(u32).init(slice);
+    var slice_iter = sliceIter(u32, slice);
 
     const predicates = struct {
         pub fn even(x: u32) bool {

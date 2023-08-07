@@ -4,7 +4,7 @@ const testing = std.testing;
 const itertools = @import("main.zig");
 const Item = itertools.Item;
 const IterError = itertools.IterError;
-const SliceIter = itertools.SliceIter;
+const sliceIter = itertools.sliceIter;
 
 /// Iter type for mapping another iterator with a function
 ///
@@ -64,7 +64,7 @@ pub fn map(
 
 test "MapIter" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var slice_iter = SliceIter(u32).init(slice);
+    var slice_iter = sliceIter(u32, slice);
 
     const functions = struct {
         pub fn double(x: u32) u64 {

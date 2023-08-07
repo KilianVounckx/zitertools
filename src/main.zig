@@ -1,7 +1,9 @@
 const std = @import("std");
 const testing = std.testing;
 
-pub const SliceIter = @import("slice_iter.zig").SliceIter;
+const slice_iter = @import("slice_iter.zig");
+pub const SliceIter = slice_iter.SliceIter;
+pub const sliceIter = slice_iter.sliceIter;
 const range_iter = @import("range_iter.zig");
 pub const range = range_iter.range;
 pub const RangeIter = range_iter.RangeIter;

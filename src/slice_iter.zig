@@ -10,12 +10,7 @@ pub fn SliceIter(comptime T: type) type {
         const Self = @This();
 
         slice: []const T,
-        index: usize = 0,
-
-        /// Creates an iterator iterating over values in slice
-        pub fn init(slice: []const T) Self {
-            return .{ .slice = slice };
-        }
+        index: usize,
 
         pub fn next(self: *Self) ?T {
             if (self.index >= self.slice.len)
@@ -26,9 +21,14 @@ pub fn SliceIter(comptime T: type) type {
     };
 }
 
-test "SliceIter" {
+/// Returns an iterator iterating over the values in the slice.
+pub fn sliceIter(comptime T: anytype, slice: []const T) SliceIter(T) {
+    return .{ .slice = slice, .index = 0 };
+}
+
+test "sliceIter" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = SliceIter(u32).init(slice);
+    var iter = sliceIter(u32, slice);
 
     try testing.expectEqual(u32, Item(@TypeOf(iter)));
     try testing.expectEqual(@as(?u32, 1), iter.next());

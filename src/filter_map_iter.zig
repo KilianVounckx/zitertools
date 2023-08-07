@@ -4,7 +4,7 @@ const testing = std.testing;
 const itertools = @import("main.zig");
 const Item = itertools.Item;
 const IterError = itertools.IterError;
-const SliceIter = itertools.SliceIter;
+const sliceIter = itertools.sliceIter;
 
 /// An iterator that uses f to both filter and map elements from iter.
 ///
@@ -71,7 +71,7 @@ pub fn filterMap(
 
 test "FilterMapIter" {
     const slice: []const u32 = &.{ 1, 2, 3, 4, 5, 6, 7, 8 };
-    var slice_iter = SliceIter(u32).init(slice);
+    var slice_iter = sliceIter(u32, slice);
 
     const func = struct {
         pub fn func(x: u32) ?u64 {

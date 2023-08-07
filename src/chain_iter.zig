@@ -4,7 +4,7 @@ const testing = std.testing;
 const itertools = @import("main.zig");
 const Item = itertools.Item;
 const IterError = itertools.IterError;
-const SliceIter = itertools.SliceIter;
+const sliceIter = itertools.sliceIter;
 const range = itertools.range;
 
 /// An iterator that links two iterators together, in a chain.
@@ -63,7 +63,7 @@ pub fn chain(iter1: anytype, iter2: anytype) ChainIter(@TypeOf(iter1), @TypeOf(i
 }
 
 test "Chain" {
-    var iter1 = SliceIter(u32).init(&.{ 1, 2, 3 });
+    var iter1 = sliceIter(u32, &.{ 1, 2, 3 });
     var iter2 = range(u32, 5, 8);
     var iter = chain(iter1, iter2);
     try testing.expectEqual(u32, Item(@TypeOf(iter)));

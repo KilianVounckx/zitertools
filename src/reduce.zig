@@ -5,7 +5,7 @@ const Child = std.meta.Child;
 const itertools = @import("main.zig");
 const Item = itertools.Item;
 const IterError = itertools.IterError;
-const SliceIter = itertools.SliceIter;
+const sliceIter = itertools.sliceIter;
 
 /// Returns the return type to be used in `reduce`
 pub fn Reduce(comptime Iter: type, comptime T: type) type {
@@ -34,7 +34,7 @@ pub fn reduce(
 
 test "reduce" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = SliceIter(u32).init(slice);
+    var iter = sliceIter(u32, slice);
 
     const add = struct {
         fn add(x: u64, y: u32) u64 {
@@ -85,7 +85,7 @@ pub fn reduce1(
 
 test "reduce1" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = SliceIter(u32).init(slice);
+    var iter = sliceIter(u32, slice);
 
     const add = struct {
         fn add(x: u32, y: u32) u32 {

@@ -7,7 +7,7 @@ const ArrayList = std.ArrayList;
 const itertools = @import("main.zig");
 const Item = itertools.Item;
 const IterError = itertools.IterError;
-const SliceIter = itertools.SliceIter;
+const sliceIter = itertools.sliceIter;
 
 /// Returns the return type to be used in `toSlice`
 pub fn ToSlice(comptime Iter: type) type {
@@ -36,14 +36,14 @@ pub fn toSlice(
 
 test "toSlice" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = SliceIter(u32).init(slice);
+    var iter = sliceIter(u32, slice);
 
     var buffer: [10]u32 = undefined;
 
     try testing.expectEqualSlices(u32, slice, try toSlice(&iter, &buffer));
 
     var empty_buffer: [0]u32 = .{};
-    var iter2 = SliceIter(u32).init(slice);
+    var iter2 = sliceIter(u32, slice);
     try testing.expectError(error.IterTooLong, toSlice(&iter2, &empty_buffer));
 }
 
@@ -78,7 +78,7 @@ pub fn toSliceAlloc(
 
 test "toSliceAlloc" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = SliceIter(u32).init(slice);
+    var iter = sliceIter(u32, slice);
 
     const allocated = try toSliceAlloc(&iter, testing.allocator);
     defer testing.allocator.free(allocated);
