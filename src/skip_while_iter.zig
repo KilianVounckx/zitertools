@@ -47,7 +47,7 @@ pub fn SkipWhileIter(comptime BaseIter: type) type {
 //
 // After false is returned, `skipWhile()`’s job is over, and the rest of the
 /// elements are yielded.
-pub fn skipWhile(iter: anytype, predicate: anytype) SkipWhileIter(@TypeOf(iter)) {
+pub fn skipWhile(iter: anytype, predicate: *const fn (Item(@TypeOf(iter))) bool) SkipWhileIter(@TypeOf(iter)) {
     return .{ .base_iter = iter, .predicate = predicate };
 }
 
