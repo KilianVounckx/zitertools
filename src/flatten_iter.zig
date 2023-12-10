@@ -17,7 +17,7 @@ pub fn FlattenIter(comptime BaseIters: type) type {
         base_iters: BaseIters,
         current_iter: ?Item(BaseIters),
 
-        const Next = if (IterError(BaseIters)) |ESB|
+        pub const Next = if (IterError(BaseIters)) |ESB|
             if (IterError(Item(BaseIters))) |ESI|
                 (ESB || ESI)!?Item(Item(BaseIters))
             else
@@ -43,7 +43,7 @@ pub fn FlattenIter(comptime BaseIters: type) type {
                     try self.base_iters.next()
                 else
                     self.base_iters.next();
-                return self.next();
+                return @call(.always_tail, Self.next, .{self});
             } else {
                 return null;
             }
