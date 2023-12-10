@@ -31,22 +31,19 @@ pub fn FlattenIter(comptime BaseIters: type) type {
             const base_has_error = comptime IterError(BaseIters) != null;
             const item_has_error = comptime IterError(Item(BaseIters)) != null;
 
-            if (self.current_iter) |*iter| {
-                const maybe_item = if (item_has_error)
-                    try iter.next()
-                else
-                    iter.next();
-                if (maybe_item) |item|
-                    return item;
+            const iter = &(self.current_iter orelse return null);
+            const maybe_item = if (item_has_error)
+                try iter.next()
+            else
+                iter.next();
+            if (maybe_item) |item|
+                return item;
 
-                self.current_iter = if (base_has_error)
-                    try self.base_iters.next()
-                else
-                    self.base_iters.next();
-                return @call(.always_tail, Self.next, .{self});
-            } else {
-                return null;
-            }
+            self.current_iter = if (base_has_error)
+                try self.base_iters.next()
+            else
+                self.base_iters.next();
+            return @call(.always_tail, Self.next, .{self});
         }
     };
 }
