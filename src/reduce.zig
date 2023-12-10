@@ -1,6 +1,5 @@
 const std = @import("std");
 const testing = std.testing;
-const Child = std.meta.Child;
 
 const itertools = @import("main.zig");
 const Item = itertools.Item;
@@ -19,14 +18,15 @@ pub fn Reduce(comptime Iter: type) type {
 pub fn reduce(
     iter: anytype,
     comptime func: fn (
-        Item(Child(@TypeOf(iter))),
-        Item(Child(@TypeOf(iter))),
-    ) Item(Child(@TypeOf(iter))),
-) Reduce(Child(@TypeOf(iter))) {
-    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
-    const maybe_init = if (has_error) try iter.next() else iter.next();
+        Item(@TypeOf(iter)),
+        Item(@TypeOf(iter)),
+    ) Item(@TypeOf(iter)),
+) Reduce(@TypeOf(iter)) {
+    const has_error = comptime IterError(@TypeOf(iter)) != null;
+    var mut_iter = iter;
+    const maybe_init = if (has_error) try mut_iter.next() else mut_iter.next();
     const init = maybe_init orelse return null;
-    return itertools.fold(iter, Item(Child(@TypeOf(iter))), init, func);
+    return itertools.fold(mut_iter, Item(@TypeOf(iter)), init, func);
 }
 
 pub fn reduceContext(
@@ -34,19 +34,20 @@ pub fn reduceContext(
     context: anytype,
     comptime func: fn (
         @TypeOf(context),
-        Item(Child(@TypeOf(iter))),
-        Item(Child(@TypeOf(iter))),
-    ) Item(Child(@TypeOf(iter))),
-) Reduce(Child(@TypeOf(iter))) {
-    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
-    const maybe_init = if (has_error) try iter.next() else iter.next();
+        Item(@TypeOf(iter)),
+        Item(@TypeOf(iter)),
+    ) Item(@TypeOf(iter)),
+) Reduce(@TypeOf(iter)) {
+    const has_error = comptime IterError(@TypeOf(iter)) != null;
+    var mut_iter = iter;
+    const maybe_init = if (has_error) try mut_iter.next() else mut_iter.next();
     const init = maybe_init orelse return null;
-    return itertools.foldContext(iter, context, Item(Child(@TypeOf(iter))), init, func);
+    return itertools.foldContext(mut_iter, context, Item(@TypeOf(iter)), init, func);
 }
 
 test "reduce" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = sliceIter(u32, slice);
+    const iter = sliceIter(u32, slice);
 
     const add = struct {
         fn add(x: u32, y: u32) u32 {
@@ -54,12 +55,38 @@ test "reduce" {
         }
     }.add;
 
-    try testing.expectEqual(@as(?u32, 10), reduce(&iter, add));
-    try testing.expect(reduce(&iter, add) == null);
+    try testing.expectEqual(@as(?u32, 10), reduce(iter, add));
+}
+
+test "reduce context" {
+    const slice: []const u32 = &.{ 1, 2, 3, 4 };
+    const iter = sliceIter(u32, slice);
+
+    const add = struct {
+        fn add(context: u32, x: u32, y: u32) u32 {
+            return x + y + context;
+        }
+    }.add;
+
+    const context: u32 = 5;
+    try testing.expectEqual(@as(?u32, 25), reduceContext(iter, context, add));
+}
+
+test "reduce empty" {
+    const slice: []const u32 = &.{};
+    const iter = sliceIter(u32, slice);
+
+    const add = struct {
+        fn add(x: u32, y: u32) u32 {
+            return x + y;
+        }
+    }.add;
+
+    try testing.expect(reduce(iter, add) == null);
 }
 
 test "reduce error" {
-    var iter = TestErrorIter.init(5);
+    const iter = TestErrorIter.init(5);
 
     const add = struct {
         fn add(x: usize, y: usize) usize {
@@ -67,7 +94,7 @@ test "reduce error" {
         }
     }.add;
 
-    try testing.expectError(error.TestErrorIterError, reduce(&iter, add));
+    try testing.expectError(error.TestErrorIterError, reduce(iter, add));
 }
 
 const TestErrorIter = struct {

@@ -1,6 +1,5 @@
 const std = @import("std");
 const testing = std.testing;
-const Child = std.meta.Child;
 
 const itertools = @import("main.zig");
 const Item = itertools.Item;
@@ -20,11 +19,12 @@ pub fn fold(
     iter: anytype,
     comptime T: type,
     init: T,
-    comptime func: fn (T, Item(Child(@TypeOf(iter)))) T,
-) Fold(Child(@TypeOf(iter)), T) {
-    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
+    comptime func: fn (T, Item(@TypeOf(iter))) T,
+) Fold(@TypeOf(iter), T) {
+    const has_error = comptime IterError(@TypeOf(iter)) != null;
+    var mut_iter = iter;
     var res = init;
-    while (if (has_error) try iter.next() else iter.next()) |item| {
+    while (if (has_error) try mut_iter.next() else mut_iter.next()) |item| {
         res = func(res, item);
     }
     return res;
@@ -35,11 +35,12 @@ pub fn foldContext(
     context: anytype,
     comptime T: type,
     init: T,
-    comptime func: fn (@TypeOf(context), T, Item(Child(@TypeOf(iter)))) T,
-) Fold(Child(@TypeOf(iter)), T) {
-    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
+    comptime func: fn (@TypeOf(context), T, Item(@TypeOf(iter))) T,
+) Fold(@TypeOf(iter), T) {
+    const has_error = comptime IterError(@TypeOf(iter)) != null;
+    var mut_iter = iter;
     var res = init;
-    while (if (has_error) try iter.next() else iter.next()) |item| {
+    while (if (has_error) try mut_iter.next() else mut_iter.next()) |item| {
         res = func(context, res, item);
     }
     return res;
@@ -47,7 +48,7 @@ pub fn foldContext(
 
 test "fold" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = sliceIter(u32, slice);
+    const iter = sliceIter(u32, slice);
 
     const add = struct {
         fn add(x: u64, y: u32) u64 {
@@ -55,11 +56,30 @@ test "fold" {
         }
     }.add;
 
-    try testing.expectEqual(@as(?u64, 10), fold(&iter, u64, 0, add));
+    try testing.expectEqual(@as(?u64, 10), fold(iter, u64, 0, add));
+}
+
+test "fold context" {
+    const slice: []const u32 = &.{ 1, 2, 3, 4 };
+    const iter = sliceIter(u32, slice);
+
+    const add = struct {
+        fn add(context: u64, x: u64, y: u32) u64 {
+            return context + x + y;
+        }
+    }.add;
+
+    try testing.expectEqual(@as(?u64, 30), foldContext(
+        iter,
+        @as(u64, 5),
+        u64,
+        0,
+        add,
+    ));
 }
 
 test "fold error" {
-    var iter = TestErrorIter.init(5);
+    const iter = TestErrorIter.init(5);
 
     const add = struct {
         fn add(x: u64, y: usize) u64 {
@@ -67,7 +87,7 @@ test "fold error" {
         }
     }.add;
 
-    try testing.expectError(error.TestErrorIterError, fold(&iter, u64, 0, add));
+    try testing.expectError(error.TestErrorIterError, fold(iter, u64, 0, add));
 }
 
 const TestErrorIter = struct {
