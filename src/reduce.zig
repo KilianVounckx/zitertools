@@ -8,7 +8,7 @@ const IterError = itertools.IterError;
 const sliceIter = itertools.sliceIter;
 
 /// Returns the return type to be used in `reduce`
-pub fn Reduce(comptime Iter: type, comptime T: type) type {
+pub fn Fold(comptime Iter: type, comptime T: type) type {
     return if (IterError(Iter)) |ES|
         ES!?T
     else
@@ -16,14 +16,12 @@ pub fn Reduce(comptime Iter: type, comptime T: type) type {
 }
 
 /// Applies a binary operator between all items in iter with an initial element.
-///
-/// Also know as fold in functional languages.
-pub fn reduce(
+pub fn fold(
     iter: anytype,
     comptime T: type,
     init: T,
     comptime func: fn (T, Item(Child(@TypeOf(iter)))) T,
-) Reduce(Child(@TypeOf(iter)), T) {
+) Fold(Child(@TypeOf(iter)), T) {
     const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
     var res = init;
     while (if (has_error) try iter.next() else iter.next()) |item| {
@@ -32,7 +30,59 @@ pub fn reduce(
     return res;
 }
 
-test "reduce" {
+pub fn foldContext(
+    iter: anytype,
+    context: anytype,
+    comptime T: type,
+    init: T,
+    comptime func: fn (@TypeOf(context), T, Item(Child(@TypeOf(iter)))) T,
+) Fold(Child(@TypeOf(iter)), T) {
+    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
+    var res = init;
+    while (if (has_error) try iter.next() else iter.next()) |item| {
+        res = func(context, res, item);
+    }
+    return res;
+}
+
+/// Returns the return type to be used in `reduce1`
+pub fn Reduce(comptime Iter: type) type {
+    return if (IterError(Iter)) |ES|
+        ES!?Item(Iter)
+    else
+        ?Item(Iter);
+}
+
+/// Applies a binary operator between all items in iter with no initial element.
+pub fn reduce(
+    iter: anytype,
+    comptime func: fn (
+        Item(Child(@TypeOf(iter))),
+        Item(Child(@TypeOf(iter))),
+    ) Item(Child(@TypeOf(iter))),
+) Reduce(Child(@TypeOf(iter))) {
+    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
+    const maybe_init = if (has_error) try iter.next() else iter.next();
+    const init = maybe_init orelse return null;
+    return fold(iter, Item(Child(@TypeOf(iter))), init, func);
+}
+
+pub fn reduceContext(
+    iter: anytype,
+    context: anytype,
+    comptime func: fn (
+        @TypeOf(context),
+        Item(Child(@TypeOf(iter))),
+        Item(Child(@TypeOf(iter))),
+    ) Item(Child(@TypeOf(iter))),
+) Reduce(Child(@TypeOf(iter))) {
+    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
+    const maybe_init = if (has_error) try iter.next() else iter.next();
+    const init = maybe_init orelse return null;
+    return foldContext(iter, context, Item(Child(@TypeOf(iter))), init, func);
+}
+
+test "fold" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
     var iter = sliceIter(u32, slice);
 
@@ -42,10 +92,10 @@ test "reduce" {
         }
     }.add;
 
-    try testing.expectEqual(@as(?u64, 10), reduce(&iter, u64, 0, add));
+    try testing.expectEqual(@as(?u64, 10), fold(&iter, u64, 0, add));
 }
 
-test "reduce error" {
+test "fold error" {
     var iter = TestErrorIter.init(5);
 
     const add = struct {
@@ -54,34 +104,10 @@ test "reduce error" {
         }
     }.add;
 
-    try testing.expectError(error.TestErrorIterError, reduce(&iter, u64, 0, add));
+    try testing.expectError(error.TestErrorIterError, fold(&iter, u64, 0, add));
 }
 
-/// Returns the return type to be used in `reduce1`
-pub fn Reduce1(comptime Iter: type) type {
-    return if (IterError(Iter)) |ES|
-        ES!?Item(Iter)
-    else
-        ?Item(Iter);
-}
-
-/// Applies a binary operator between all items in iter with no initial element.
-///
-/// Also know as fold1 in functional languages.
-pub fn reduce1(
-    iter: anytype,
-    comptime func: fn (
-        Item(Child(@TypeOf(iter))),
-        Item(Child(@TypeOf(iter))),
-    ) Item(Child(@TypeOf(iter))),
-) Reduce1(Child(@TypeOf(iter))) {
-    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
-    const maybe_init = if (has_error) try iter.next() else iter.next();
-    const init = maybe_init orelse return null;
-    return reduce(iter, Item(Child(@TypeOf(iter))), init, func);
-}
-
-test "reduce1" {
+test "reduce" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
     var iter = sliceIter(u32, slice);
 
@@ -91,11 +117,11 @@ test "reduce1" {
         }
     }.add;
 
-    try testing.expectEqual(@as(?u32, 10), reduce1(&iter, add));
-    try testing.expect(reduce1(&iter, add) == null);
+    try testing.expectEqual(@as(?u32, 10), reduce(&iter, add));
+    try testing.expect(reduce(&iter, add) == null);
 }
 
-test "reduce1 error" {
+test "reduce error" {
     var iter = TestErrorIter.init(5);
 
     const add = struct {
@@ -104,7 +130,7 @@ test "reduce1 error" {
         }
     }.add;
 
-    try testing.expectError(error.TestErrorIterError, reduce1(&iter, add));
+    try testing.expectError(error.TestErrorIterError, reduce(&iter, add));
 }
 
 const TestErrorIter = struct {
