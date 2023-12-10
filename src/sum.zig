@@ -5,10 +5,16 @@ const IterError = itertools.IterError;
 const fold = itertools.fold;
 const sliceIter = itertools.sliceIter;
 
+/// Returns the return type to be used in `sum`
 pub fn Sum(comptime Iter: type, comptime Dest: ?type) type {
     return if (IterError(Iter)) |ES| ES!(Dest orelse Item(Iter)) else (Dest orelse Item(Iter));
 }
 
+/// This function is used to fold all the items in an iterator into a single value by __adding__ them
+/// together. The type of the value is determined by the type of the iterator or `Dest`, if provided. If the iterator
+/// returns an error, then the error is returned from the function.
+///
+/// Can be used to sum integers, floats, and vectors.
 pub fn sum(comptime Dest: ?type, iter: anytype) Sum(@TypeOf(iter), Dest) {
     const T = Item(@TypeOf(iter));
     const add = struct {

@@ -6,7 +6,7 @@ const Item = itertools.Item;
 const IterError = itertools.IterError;
 const sliceIter = itertools.sliceIter;
 
-/// Returns the return type to be used in `reduce`
+/// Returns the return type to be used in `fold`
 pub fn Fold(comptime Iter: type, comptime T: type) type {
     return if (IterError(Iter)) |ES| ES!T else T;
 }
@@ -26,6 +26,10 @@ pub fn fold(
     return res;
 }
 
+/// Applies a binary operator between all items in iter with an initial element and a context.
+///
+/// The context is passed as the first argument to the function. Context is useful for
+/// when you want to pass in a function that behaves like a closure.
 pub fn foldContext(
     iter: anytype,
     context: anytype,

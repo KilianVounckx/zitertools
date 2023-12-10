@@ -32,6 +32,9 @@ pub fn MapIter(comptime BaseIter: type, comptime func: anytype) type {
     };
 }
 
+/// Iter type for mapping another iterator with a function and context
+///
+/// See `mapContext` for more info.
 pub fn MapContextIter(
     comptime BaseIter: type,
     comptime func: anytype,
@@ -83,6 +86,10 @@ fn validateMapFn(
     return func;
 }
 
+/// Returns a new iterator which maps items in iter using func as a function and context as the
+/// first argument to func.
+///
+/// Context is useful for when you want to pass in a function that behaves like a closure.
 pub fn mapContext(
     iter: anytype,
     context: anytype,

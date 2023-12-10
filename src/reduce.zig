@@ -6,7 +6,7 @@ const Item = itertools.Item;
 const IterError = itertools.IterError;
 const sliceIter = itertools.sliceIter;
 
-/// Returns the return type to be used in `reduce1`
+/// Returns the return type to be used in `reduce`
 pub fn Reduce(comptime Iter: type) type {
     return if (IterError(Iter)) |ES|
         ES!?Item(Iter)
@@ -36,6 +36,10 @@ pub fn reduce(
     );
 }
 
+/// Applies a binary operator between all items in iter with an initial element and a context.
+///
+/// The context is passed as the first argument to the function. Context is useful for
+/// when you want to pass in a function that behaves like a closure.
 pub fn reduceContext(
     iter: anytype,
     context: anytype,

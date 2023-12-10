@@ -68,7 +68,7 @@ pub fn FilterMapContextIter(
 ///
 /// The returned iterator yields only the values for which the supplied function does not return null.
 ///
-/// filterMap can be used to make chains of filter and map more concise.
+/// `filterMap` can be used to make chains of filter and map more concise.
 pub fn filterMap(
     iter: anytype,
     comptime func: anytype,
@@ -83,6 +83,14 @@ fn validateFilterMapFn(
     return func;
 }
 
+/// Creates an iterator that both filters and maps with a context.
+///
+/// The returned iterator yields only the values for which the supplied function does not return null.
+///
+/// `filterMapContext` can be used to make chains of filter and map with context more concise.
+///
+/// The context is passed as the first argument to the function. Context is useful for
+/// when you want to pass in a function that behaves like a closure.
 pub fn filterMapContext(
     iter: anytype,
     context: anytype,
