@@ -10,9 +10,9 @@ const sliceIter = itertools.sliceIter;
 /// Returns the return type to be used in `reduce`
 pub fn Reduce(comptime Iter: type, comptime T: type) type {
     return if (IterError(Iter)) |ES|
-        ES!T
+        ES!?T
     else
-        T;
+        ?T;
 }
 
 /// Applies a binary operator between all items in iter with an initial element.
@@ -21,8 +21,8 @@ pub fn Reduce(comptime Iter: type, comptime T: type) type {
 pub fn reduce(
     iter: anytype,
     comptime T: type,
-    func: *const fn (T, Item(Child(@TypeOf(iter)))) T,
     init: T,
+    comptime func: fn (T, Item(Child(@TypeOf(iter)))) T,
 ) Reduce(Child(@TypeOf(iter)), T) {
     const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
     var res = init;
@@ -42,7 +42,7 @@ test "reduce" {
         }
     }.add;
 
-    try testing.expectEqual(@as(u64, 10), reduce(&iter, u64, add, 0));
+    try testing.expectEqual(@as(?u64, 10), reduce(&iter, u64, 0, add));
 }
 
 test "reduce error" {
@@ -54,33 +54,31 @@ test "reduce error" {
         }
     }.add;
 
-    try testing.expectError(error.TestErrorIterError, reduce(&iter, u64, add, 0));
+    try testing.expectError(error.TestErrorIterError, reduce(&iter, u64, 0, add));
 }
 
 /// Returns the return type to be used in `reduce1`
 pub fn Reduce1(comptime Iter: type) type {
     return if (IterError(Iter)) |ES|
-        (error{EmptyIterator} || ES)!Item(Iter)
+        ES!?Item(Iter)
     else
-        error{EmptyIterator}!Item(Iter);
+        ?Item(Iter);
 }
 
 /// Applies a binary operator between all items in iter with no initial element.
 ///
-/// If the iterator is empty `error.EmptyIterator` is returned.
-///
 /// Also know as fold1 in functional languages.
 pub fn reduce1(
     iter: anytype,
-    func: *const fn (
+    comptime func: fn (
         Item(Child(@TypeOf(iter))),
         Item(Child(@TypeOf(iter))),
     ) Item(Child(@TypeOf(iter))),
 ) Reduce1(Child(@TypeOf(iter))) {
     const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
     const maybe_init = if (has_error) try iter.next() else iter.next();
-    const init = maybe_init orelse return error.EmptyIterator;
-    return reduce(iter, Item(Child(@TypeOf(iter))), func, init);
+    const init = maybe_init orelse return null;
+    return reduce(iter, Item(Child(@TypeOf(iter))), init, func);
 }
 
 test "reduce1" {
@@ -93,8 +91,8 @@ test "reduce1" {
         }
     }.add;
 
-    try testing.expectEqual(@as(u32, 10), try reduce1(&iter, add));
-    try testing.expectError(error.EmptyIterator, reduce1(&iter, add));
+    try testing.expectEqual(@as(?u32, 10), reduce1(&iter, add));
+    try testing.expect(reduce1(&iter, add) == null);
 }
 
 test "reduce1 error" {
