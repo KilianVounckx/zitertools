@@ -7,44 +7,6 @@ const Item = itertools.Item;
 const IterError = itertools.IterError;
 const sliceIter = itertools.sliceIter;
 
-/// Returns the return type to be used in `reduce`
-pub fn Fold(comptime Iter: type, comptime T: type) type {
-    return if (IterError(Iter)) |ES|
-        ES!?T
-    else
-        ?T;
-}
-
-/// Applies a binary operator between all items in iter with an initial element.
-pub fn fold(
-    iter: anytype,
-    comptime T: type,
-    init: T,
-    comptime func: fn (T, Item(Child(@TypeOf(iter)))) T,
-) Fold(Child(@TypeOf(iter)), T) {
-    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
-    var res = init;
-    while (if (has_error) try iter.next() else iter.next()) |item| {
-        res = func(res, item);
-    }
-    return res;
-}
-
-pub fn foldContext(
-    iter: anytype,
-    context: anytype,
-    comptime T: type,
-    init: T,
-    comptime func: fn (@TypeOf(context), T, Item(Child(@TypeOf(iter)))) T,
-) Fold(Child(@TypeOf(iter)), T) {
-    const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
-    var res = init;
-    while (if (has_error) try iter.next() else iter.next()) |item| {
-        res = func(context, res, item);
-    }
-    return res;
-}
-
 /// Returns the return type to be used in `reduce1`
 pub fn Reduce(comptime Iter: type) type {
     return if (IterError(Iter)) |ES|
@@ -64,7 +26,7 @@ pub fn reduce(
     const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
     const maybe_init = if (has_error) try iter.next() else iter.next();
     const init = maybe_init orelse return null;
-    return fold(iter, Item(Child(@TypeOf(iter))), init, func);
+    return itertools.fold(iter, Item(Child(@TypeOf(iter))), init, func);
 }
 
 pub fn reduceContext(
@@ -79,32 +41,7 @@ pub fn reduceContext(
     const has_error = comptime IterError(Child(@TypeOf(iter))) != null;
     const maybe_init = if (has_error) try iter.next() else iter.next();
     const init = maybe_init orelse return null;
-    return foldContext(iter, context, Item(Child(@TypeOf(iter))), init, func);
-}
-
-test "fold" {
-    const slice: []const u32 = &.{ 1, 2, 3, 4 };
-    var iter = sliceIter(u32, slice);
-
-    const add = struct {
-        fn add(x: u64, y: u32) u64 {
-            return x + y;
-        }
-    }.add;
-
-    try testing.expectEqual(@as(?u64, 10), fold(&iter, u64, 0, add));
-}
-
-test "fold error" {
-    var iter = TestErrorIter.init(5);
-
-    const add = struct {
-        fn add(x: u64, y: usize) u64 {
-            return x + y;
-        }
-    }.add;
-
-    try testing.expectError(error.TestErrorIterError, fold(&iter, u64, 0, add));
+    return itertools.foldContext(iter, context, Item(Child(@TypeOf(iter))), init, func);
 }
 
 test "reduce" {
