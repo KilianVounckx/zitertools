@@ -9,12 +9,11 @@ const sliceIter = itertools.sliceIter;
 /// Iter type for filtering another iterator with a predicate
 ///
 /// See `filter` for more info.
-pub fn FilterIter(comptime BaseIter: type) type {
+pub fn FilterIter(comptime BaseIter: type, comptime predicate: fn (*const Item(BaseIter)) bool) type {
     return struct {
         const Self = @This();
 
         base_iter: BaseIter,
-        predicate: *const fn (Item(BaseIter)) bool,
 
         pub const Next = if (IterError(BaseIter)) |ES| ES!?Item(BaseIter) else ?Item(BaseIter);
 
@@ -25,9 +24,36 @@ pub fn FilterIter(comptime BaseIter: type) type {
             else
                 self.base_iter.next();
             const item = maybe_item orelse return null;
-            if (self.predicate(item))
+            if (predicate(&item))
                 return item;
-            return self.next();
+            return @call(.always_tail, Self.next, .{self});
+        }
+    };
+}
+
+pub fn FilterContextIter(
+    comptime BaseIter: type,
+    comptime Context: type,
+    comptime predicate: fn (Context, *const Item(BaseIter)) bool,
+) type {
+    return struct {
+        const Self = @This();
+
+        base_iter: BaseIter,
+        context: Context,
+
+        pub const Next = if (IterError(BaseIter)) |ES| ES!?Item(BaseIter) else ?Item(BaseIter);
+
+        pub fn next(self: *Self) Next {
+            const has_error = comptime IterError(BaseIter) != null;
+            const maybe_item = if (has_error)
+                try self.base_iter.next()
+            else
+                self.base_iter.next();
+            const item = maybe_item orelse return null;
+            if (predicate(self.context, &item))
+                return item;
+            return @call(.always_tail, Self.next, .{self});
         }
     };
 }
@@ -38,9 +64,17 @@ pub fn FilterIter(comptime BaseIter: type) type {
 /// an optional.
 pub fn filter(
     iter: anytype,
-    predicate: *const fn (Item(@TypeOf(iter))) bool,
-) FilterIter(@TypeOf(iter)) {
-    return .{ .base_iter = iter, .predicate = predicate };
+    comptime predicate: fn (*const Item(@TypeOf(iter))) bool,
+) FilterIter(@TypeOf(iter), predicate) {
+    return .{ .base_iter = iter };
+}
+
+pub fn filterContext(
+    iter: anytype,
+    context: anytype,
+    comptime predicate: fn (@TypeOf(context), *const Item(@TypeOf(iter))) bool,
+) FilterContextIter(@TypeOf(iter), @TypeOf(context), predicate) {
+    return .{ .base_iter = iter, .context = context };
 }
 
 test "FilterIter" {
@@ -48,12 +82,12 @@ test "FilterIter" {
     var slice_iter = sliceIter(u32, slice);
 
     const predicates = struct {
-        pub fn even(x: u32) bool {
-            return x % 2 == 0;
+        pub fn even(x: *const u32) bool {
+            return x.* % 2 == 0;
         }
 
-        pub fn big(x: u32) bool {
-            return x > 4;
+        pub fn big(x: *const u32) bool {
+            return x.* > 4;
         }
     };
 
@@ -66,12 +100,50 @@ test "FilterIter" {
     try testing.expectEqual(@as(?u32, null), iter.next());
 }
 
+test "FilterContextIter simple" {
+    const slice: []const u32 = &.{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    var slice_iter = sliceIter(u32, slice);
+
+    const predicates = struct {
+        pub fn dividible(divisor: u32, x: *const u32) bool {
+            return x.* % divisor == 0;
+        }
+    };
+
+    var iter = filterContext(slice_iter, @as(u32, 3), predicates.dividible);
+
+    try testing.expectEqual(u32, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?u32, 3), iter.next());
+    try testing.expectEqual(@as(?u32, 6), iter.next());
+    try testing.expectEqual(@as(?u32, null), iter.next());
+    try testing.expectEqual(@as(?u32, null), iter.next());
+}
+
+test "FilterContextIter closure" {
+    const slice: []const u32 = &.{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    var slice_iter = sliceIter(u32, slice);
+
+    const Closure = struct {
+        divisor: u32,
+        pub fn dividible(self: @This(), x: *const u32) bool {
+            return x.* % self.divisor == 0;
+        }
+    };
+    var iter = filterContext(slice_iter, Closure{ .divisor = 3 }, Closure.dividible);
+
+    try testing.expectEqual(u32, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?u32, 3), iter.next());
+    try testing.expectEqual(@as(?u32, 6), iter.next());
+    try testing.expectEqual(@as(?u32, null), iter.next());
+    try testing.expectEqual(@as(?u32, null), iter.next());
+}
+
 test "FilterIter error" {
     var test_iter = TestErrorIter.init(5);
 
     const even = struct {
-        pub fn even(x: usize) bool {
-            return x % 2 == 0;
+        pub fn even(x: *const usize) bool {
+            return x.* % 2 == 0;
         }
     }.even;
 
