@@ -8,19 +8,15 @@ const sliceIter = itertools.sliceIter;
 
 /// Returns the return type to be used in `reduce`
 pub fn Fold(comptime Iter: type, comptime T: type) type {
-    return if (IterError(Iter)) |ES|
-        ES!?T
-    else
-        ?T;
+    return if (IterError(Iter)) |ES| ES!T else T;
 }
 
 /// Applies a binary operator between all items in iter with an initial element.
 pub fn fold(
     iter: anytype,
-    comptime T: type,
-    init: T,
-    comptime func: fn (T, Item(@TypeOf(iter))) T,
-) Fold(@TypeOf(iter), T) {
+    init: anytype,
+    comptime func: fn (@TypeOf(init), Item(@TypeOf(iter))) @TypeOf(init),
+) Fold(@TypeOf(iter), @TypeOf(init)) {
     const has_error = comptime IterError(@TypeOf(iter)) != null;
     var mut_iter = iter;
     var res = init;
@@ -33,10 +29,9 @@ pub fn fold(
 pub fn foldContext(
     iter: anytype,
     context: anytype,
-    comptime T: type,
-    init: T,
-    comptime func: fn (@TypeOf(context), T, Item(@TypeOf(iter))) T,
-) Fold(@TypeOf(iter), T) {
+    init: anytype,
+    comptime func: fn (@TypeOf(context), @TypeOf(init), Item(@TypeOf(iter))) @TypeOf(init),
+) Fold(@TypeOf(iter), @TypeOf(init)) {
     const has_error = comptime IterError(@TypeOf(iter)) != null;
     var mut_iter = iter;
     var res = init;
@@ -56,7 +51,20 @@ test "fold" {
         }
     }.add;
 
-    try testing.expectEqual(@as(?u64, 10), fold(iter, u64, 0, add));
+    try testing.expectEqual(@as(u64, 10), fold(iter, @as(u64, 0), add));
+}
+
+test "fold empty" {
+    const slice: []const u32 = &.{};
+    const iter = sliceIter(u32, slice);
+
+    const add = struct {
+        fn add(x: u64, y: u32) u64 {
+            return x + y;
+        }
+    }.add;
+
+    try testing.expectEqual(@as(u64, 0), fold(iter, @as(u64, 0), add));
 }
 
 test "fold context" {
@@ -69,11 +77,10 @@ test "fold context" {
         }
     }.add;
 
-    try testing.expectEqual(@as(?u64, 30), foldContext(
+    try testing.expectEqual(@as(u64, 30), foldContext(
         iter,
         @as(u64, 5),
-        u64,
-        0,
+        @as(u64, 0),
         add,
     ));
 }
@@ -87,7 +94,7 @@ test "fold error" {
         }
     }.add;
 
-    try testing.expectError(error.TestErrorIterError, fold(iter, u64, 0, add));
+    try testing.expectError(error.TestErrorIterError, fold(iter, @as(u64, 0), add));
 }
 
 const TestErrorIter = struct {

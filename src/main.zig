@@ -77,6 +77,12 @@ pub const TakeWhileIter = take_while_iter.TakeWhileIter;
 const zip_iter = @import("zip_iter.zig");
 pub const zip = zip_iter.zip;
 pub const ZipIter = zip_iter.ZipIter;
+const sum_namespace = @import("sum.zig");
+pub const sum = sum_namespace.sum;
+pub const Sum = sum_namespace.Sum;
+const product_namespace = @import("product.zig");
+pub const product = product_namespace.product;
+pub const Product = product_namespace.Product;
 
 test {
     testing.refAllDeclsRecursive(@This());

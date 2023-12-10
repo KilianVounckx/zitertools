@@ -25,8 +25,15 @@ pub fn reduce(
     const has_error = comptime IterError(@TypeOf(iter)) != null;
     var mut_iter = iter;
     const maybe_init = if (has_error) try mut_iter.next() else mut_iter.next();
-    const init = maybe_init orelse return null;
-    return itertools.fold(mut_iter, Item(@TypeOf(iter)), init, func);
+    return if (has_error) try itertools.fold(
+        mut_iter,
+        maybe_init orelse return null,
+        func,
+    ) else itertools.fold(
+        mut_iter,
+        maybe_init orelse return null,
+        func,
+    );
 }
 
 pub fn reduceContext(
@@ -41,8 +48,12 @@ pub fn reduceContext(
     const has_error = comptime IterError(@TypeOf(iter)) != null;
     var mut_iter = iter;
     const maybe_init = if (has_error) try mut_iter.next() else mut_iter.next();
-    const init = maybe_init orelse return null;
-    return itertools.foldContext(mut_iter, context, Item(@TypeOf(iter)), init, func);
+    return itertools.foldContext(
+        mut_iter,
+        context,
+        maybe_init orelse return null,
+        func,
+    );
 }
 
 test "reduce" {
