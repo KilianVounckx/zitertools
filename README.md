@@ -7,6 +7,7 @@ This package is heavily based on rust's `std::iter` module.
 ## Usage
 
 To use this package, use the zig package manager. For example in your build.zig.zon file, put:
+
 ```zig
 .{
     .name = "app",
@@ -21,6 +22,7 @@ To use this package, use the zig package manager. For example in your build.zig.
 
 When running zig build now, zig will tell you you need a hash for the dependency and provide one.
 Put it in you dependency so it looks like:
+
 ```zig
 .{
   .itertools = .{
@@ -31,6 +33,7 @@ Put it in you dependency so it looks like:
 ```
 
 With the dependency in place, you can now put the following in your build.zig file:
+
 ```zig
     // This will create a `std.build.Dependency` which you can use to fetch
     // the itertools module. The first argument is the dependency name. It

@@ -3,6 +3,7 @@
 !.gitignore
 
 !build.zig
+!build.zig.zon
 !src/**/*.zig
 
 !README.md
