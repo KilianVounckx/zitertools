@@ -15,8 +15,18 @@ pub fn MapIter(comptime BaseIter: type, comptime func: anytype) type {
 
         base_iter: BaseIter,
 
-        pub const Dest = @typeInfo(@TypeOf(func)).Fn.return_type.?;
-        pub const Next = if (IterError(BaseIter)) |ES| ES!?Dest else ?Dest;
+        pub const Dest: type = switch (@typeInfo(@typeInfo(@TypeOf(func)).Fn.return_type.?)) {
+            .ErrorUnion => |EU| EU.payload,
+            else => @typeInfo(@TypeOf(func)).Fn.return_type.?,
+        };
+        pub const DestES: ?type = switch (@typeInfo(@typeInfo(@TypeOf(func)).Fn.return_type.?)) {
+            .ErrorUnion => |EU| EU.error_set,
+            else => null,
+        };
+        pub const Next: type = if (IterError(BaseIter)) |ES|
+            (if (DestES) |DES| (ES || DES)!?Dest else ES!?Dest)
+        else
+            (if (DestES) |DES| DES!?Dest else ?Dest);
 
         pub fn next(self: *Self) Next {
             const maybe_item = if (@typeInfo(Next) == .ErrorUnion)
@@ -25,7 +35,7 @@ pub fn MapIter(comptime BaseIter: type, comptime func: anytype) type {
                 self.base_iter.next();
 
             return if (maybe_item) |item|
-                func(item)
+                (if (DestES != null) try func(item) else func(item))
             else
                 null;
         }
@@ -47,8 +57,18 @@ pub fn MapContextIter(
         base_iter: BaseIter,
         context: Context,
 
-        pub const Dest = Fn.return_type.?;
-        pub const Next = if (IterError(BaseIter)) |ES| ES!?Dest else ?Dest;
+        pub const Dest: type = switch (@typeInfo(Fn.return_type.?)) {
+            .ErrorUnion => |EU| EU.payload,
+            else => Fn.return_type.?,
+        };
+        pub const DestES: ?type = switch (@typeInfo(Fn.return_type.?)) {
+            .ErrorUnion => |EU| EU.error_set,
+            else => null,
+        };
+        pub const Next: type = if (IterError(BaseIter)) |ES|
+            (if (DestES) |DES| (ES || DES)!?Dest else ES!?Dest)
+        else
+            (if (DestES) |DES| DES!?Dest else ?Dest);
 
         pub fn next(self: *Self) Next {
             const maybe_item = if (@typeInfo(Next) == .ErrorUnion)
@@ -57,7 +77,7 @@ pub fn MapContextIter(
                 self.base_iter.next();
 
             return if (maybe_item) |item|
-                func(self.context, item)
+                (if (DestES != null) try func(self.context, item) else func(self.context, item))
             else
                 null;
         }
@@ -131,24 +151,6 @@ test "MapIter" {
     try testing.expectEqual(@as(?u65, null), iter.next());
 }
 
-test "MapIter error" {
-    var test_iter = TestErrorIter.init(3);
-
-    const double = struct {
-        pub fn double(x: usize) u64 {
-            return 2 * x;
-        }
-    }.double;
-
-    var iter = map(test_iter, double);
-
-    try testing.expectEqual(u64, Item(@TypeOf(iter)));
-    try testing.expectEqual(@as(?u64, 0), try iter.next());
-    try testing.expectEqual(@as(?u64, 2), try iter.next());
-    try testing.expectEqual(@as(?u64, 4), try iter.next());
-    try testing.expectError(error.TestErrorIterError, iter.next());
-}
-
 test "MapIter value closure" {
     const slice: []const u32 = &.{ 1, 2, 3, 4 };
     var slice_iter = sliceIter(u32, slice);
@@ -198,6 +200,24 @@ test "MapIter reference closure" {
     try testing.expectEqual(@as(?u65, null), iter.next());
     try testing.expectEqual(@as(?u65, null), iter.next());
     try testing.expectEqual(@as(u32, 6), acc);
+}
+
+test "MapIter error union" {
+    var test_iter = TestErrorIter.init(3);
+
+    const double = struct {
+        pub fn double(x: usize) error{Overflow}!u64 {
+            return std.math.mul(u64, 2, x);
+        }
+    }.double;
+
+    var iter = map(test_iter, double);
+
+    try testing.expectEqual(u64, Item(@TypeOf(iter)));
+    try testing.expectEqual(@as(?u64, 0), try iter.next());
+    try testing.expectEqual(@as(?u64, 2), try iter.next());
+    try testing.expectEqual(@as(?u64, 4), try iter.next());
+    try testing.expectError(error.TestErrorIterError, iter.next());
 }
 
 const TestErrorIter = struct {
