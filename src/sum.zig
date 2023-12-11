@@ -32,9 +32,9 @@ pub fn sum(comptime Dest: ?type, iter: anytype) Sum(@TypeOf(iter), Dest) {
         .ErrorUnion => |ErrorUnion| switch (@typeInfo(ErrorUnion.payload)) {
             .Int, .Float => @as(ErrorUnion.payload, 0),
             .Vector => @as(ErrorUnion.payload, @splat(0)),
-            else => std.debug.panic("sum: unsupported type: {}", .{ErrorUnion.payload}),
+            else => @compileError("[sum] unsupported type: " ++ @typeName(ErrorUnion.payload)),
         },
-        else => std.debug.panic("sum: unsupported type: {}", .{U}),
+        else => @compileError("[sum] unsupported type: " ++ @typeName(U)),
     };
     return (if (has_error) try fold(iter, init, add) else fold(iter, init, add));
 }
