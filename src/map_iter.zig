@@ -69,17 +69,14 @@ pub fn MapContextIter(
 /// iter must be an iterator, meaning it has to be a type containing a next method which returns
 /// an optional. func must be a unary function for which it's first argument type is the iterator's
 /// item type.
-pub fn map(
-    iter: anytype,
-    comptime func: anytype,
-) MapIter(
+pub fn map(iter: anytype, comptime func: anytype) MapIter(
     @TypeOf(iter),
     validateMapFn(Item(@TypeOf(iter)), func),
 ) {
     return .{ .base_iter = iter };
 }
 
-fn validateMapFn(
+pub fn validateMapFn(
     comptime Source: type,
     comptime func: anytype,
 ) fn (Source) @typeInfo(@TypeOf(func)).Fn.return_type.? {
@@ -101,7 +98,7 @@ pub fn mapContext(
     return .{ .base_iter = iter, .context = context };
 }
 
-fn validateMapContextFn(
+pub fn validateMapContextFn(
     comptime Source: type,
     comptime Context: type,
     comptime func: anytype,

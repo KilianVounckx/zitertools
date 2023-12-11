@@ -8,10 +8,7 @@ const sliceIter = itertools.sliceIter;
 
 /// Returns the return type to be used in `reduce`
 pub fn Reduce(comptime Iter: type) type {
-    return if (IterError(Iter)) |ES|
-        ES!?Item(Iter)
-    else
-        ?Item(Iter);
+    return if (IterError(Iter)) |ES| ES!?Item(Iter) else ?Item(Iter);
 }
 
 /// Applies a binary operator between all items in iter with no initial element.

@@ -21,7 +21,9 @@ pub const empty = empty_iter.empty;
 pub const EmptyIter = empty_iter.EmptyIter;
 const map_iter = @import("map_iter.zig");
 pub const map = map_iter.map;
+pub const validateMapFn = map_iter.validateMapFn;
 pub const mapContext = map_iter.mapContext;
+pub const validateMapContextFn = map_iter.validateMapContextFn;
 pub const MapIter = map_iter.MapIter;
 pub const MapContextIter = map_iter.MapContextIter;
 const filter_iter = @import("filter_iter.zig");
@@ -47,6 +49,10 @@ pub const filterMap = filter_map_iter.filterMap;
 pub const filterMapContext = filter_map_iter.filterMapContext;
 pub const FilterMapIter = filter_map_iter.FilterMapIter;
 pub const FilterMapContextIter = filter_map_iter.FilterMapContextIter;
+const find_namespace = @import("find.zig");
+pub const find = find_namespace.find;
+pub const findContext = find_namespace.findContext;
+pub const Find = find_namespace.Find;
 const flatten_iter = @import("flatten_iter.zig");
 pub const flatten = flatten_iter.flatten;
 pub const FlattenIter = flatten_iter.FlattenIter;
@@ -64,7 +70,9 @@ pub const skip = skip_iter.skip;
 pub const SkipIter = skip_iter.SkipIter;
 const skip_while_iter = @import("skip_while_iter.zig");
 pub const skipWhile = skip_while_iter.skipWhile;
+pub const skipWhileContext = skip_while_iter.skipWhileContext;
 pub const SkipWhileIter = skip_while_iter.SkipWhileIter;
+pub const SkipWhileContextIter = skip_while_iter.SkipWhileContextIter;
 const successors_iter = @import("successors_iter.zig");
 pub const successors = successors_iter.successors;
 pub const SuccessorsIter = successors_iter.SuccessorsIter;
@@ -85,9 +93,20 @@ pub const Sum = sum_namespace.Sum;
 const product_namespace = @import("product.zig");
 pub const product = product_namespace.product;
 pub const Product = product_namespace.Product;
+const iter_methods = @import("iter_methods.zig");
+pub const iterMethods = iter_methods.iterMethods;
+pub const IterMethods = iter_methods.IterMethods;
 
 test {
     testing.refAllDeclsRecursive(@This());
+}
+
+pub fn count(iter: anytype) usize {
+    var result = 0;
+    while (iter.next()) |_| {
+        result += 1;
+    }
+    return result;
 }
 
 /// Returns the type of item the iterator holds

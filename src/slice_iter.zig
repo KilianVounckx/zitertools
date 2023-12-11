@@ -22,7 +22,7 @@ pub fn SliceIter(comptime T: type) type {
 }
 
 /// Returns an iterator iterating over the values in the slice.
-pub fn sliceIter(comptime T: anytype, slice: []const T) SliceIter(T) {
+pub fn sliceIter(comptime T: anytype, slice: anytype) SliceIter(T) {
     return .{ .slice = slice, .index = 0 };
 }
 
