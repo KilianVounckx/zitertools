@@ -17,6 +17,10 @@ pub fn IterMethods(comptime Iter: type) type {
             return self.iter.next();
         }
 
+        pub fn nth(self: *Self, n: usize) it.Nth(Iter) {
+            return it.nth(&self.iter, n);
+        }
+
         // pub fn peekable
 
         pub fn map(self: Self, comptime func: anytype) IterMethods(it.MapIter(
@@ -93,8 +97,8 @@ pub fn IterMethods(comptime Iter: type) type {
             return .{ .iter = it.chain(self.iter, other) };
         }
 
-        pub fn zip(self: Self, other: anytype) IterMethods(it.ZipIter(Iter, @TypeOf(other))) {
-            return .{ .iter = it.zip(self.iter, other) };
+        pub fn zip(self: Self, other: anytype) IterMethods(it.ZipIter(struct { Iter, @TypeOf(other) })) {
+            return .{ .iter = it.zip(.{ self.iter, other }) };
         }
 
         pub fn skip(self: Self, to_skip: usize) IterMethods(it.SkipIter(Iter)) {
