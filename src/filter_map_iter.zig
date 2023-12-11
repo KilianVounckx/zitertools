@@ -76,7 +76,7 @@ pub fn filterMap(
     return .{ .base_iter = iter };
 }
 
-fn validateFilterMapFn(
+pub fn validateFilterMapFn(
     comptime Source: type,
     comptime func: anytype,
 ) fn (Source) ?@typeInfo(@typeInfo(@TypeOf(func)).Fn.return_type.?).Optional.child {
@@ -103,7 +103,7 @@ pub fn filterMapContext(
     return .{ .base_iter = iter, .context = context };
 }
 
-fn validateFilterMapContextFn(
+pub fn validateFilterMapContextFn(
     comptime Source: type,
     comptime Context: type,
     comptime func: anytype,
