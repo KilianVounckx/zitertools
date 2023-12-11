@@ -29,6 +29,11 @@ pub fn product(comptime Dest: ?type, iter: anytype) Product(@TypeOf(iter), Dest)
     const init = switch (@typeInfo(U)) {
         .Int, .Float => @as(U, 1),
         .Vector => @as(U, @splat(1)),
+        .ErrorUnion => |ErrorUnion| switch (@typeInfo(ErrorUnion.payload)) {
+            .Int, .Float => @as(ErrorUnion.payload, 1),
+            .Vector => @as(ErrorUnion.payload, @splat(1)),
+            else => std.debug.panic("sum: unsupported type: {}", .{ErrorUnion.payload}),
+        },
         else => std.debug.panic("product: unsupported type: {}", .{U}),
     };
     return (if (has_error) try fold(iter, init, mul) else fold(iter, init, mul));
@@ -86,7 +91,7 @@ const TestErrorIter = struct {
         return .{ .until_err = until_err };
     }
 
-    pub fn next(self: *Self) !?usize {
+    pub fn next(self: *Self) error{TestErrorIterError}!?usize {
         if (self.counter >= self.until_err) return error.TestErrorIterError;
         self.counter += 1;
         return self.counter - 1;
