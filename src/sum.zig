@@ -17,18 +17,19 @@ pub fn Sum(comptime Iter: type, comptime Dest: ?type) type {
 /// Can be used to sum integers, floats, and vectors.
 pub fn sum(comptime Dest: ?type, iter: anytype) Sum(@TypeOf(iter), Dest) {
     const T = Item(@TypeOf(iter));
+    const U = Dest orelse T;
     const add = struct {
-        fn add(a: (Dest orelse T), b: T) (Dest orelse T) {
-            return @as(Dest orelse T, a) + @as(Dest orelse T, b);
+        fn add(a: U, b: T) U {
+            return @as(U, a) + @as(U, b);
         }
     }.add;
 
     const has_error = comptime IterError(@TypeOf(iter)) != null;
 
-    const init = switch (@typeInfo(Dest orelse T)) {
-        .Int, .Float => @as(Dest orelse T, 0),
-        .Vector => @as(Dest orelse T, @splat(0)),
-        else => @panic("sum: unsupported type"),
+    const init = switch (@typeInfo(U)) {
+        .Int, .Float => @as(U, 0),
+        .Vector => @as(U, @splat(0)),
+        else => std.debug.panic("sum: unsupported type: {}", .{U}),
     };
     return (if (has_error) try fold(iter, init, add) else fold(iter, init, add));
 }

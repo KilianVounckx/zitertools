@@ -14,28 +14,29 @@ pub fn Product(comptime Iter: type, comptime Dest: ?type) type {
 /// together. The type of the value is determined by the type of the iterator or `Dest`, if provided. If the iterator
 /// returns an error, then the error is returned from the function.
 ///
-/// Can be used to sum integers, floats, and vectors.
+/// Can be used to mul integers, floats, and vectors.
 pub fn product(comptime Dest: ?type, iter: anytype) Product(@TypeOf(iter), Dest) {
     const T = Item(@TypeOf(iter));
+    const U = Dest orelse T;
     const mul = struct {
-        fn mul(a: (Dest orelse T), b: T) (Dest orelse T) {
-            return @as(Dest orelse T, a) * @as(Dest orelse T, b);
+        fn mul(a: U, b: T) U {
+            return @as(U, a) * @as(U, b);
         }
     }.mul;
 
     const has_error = comptime IterError(@TypeOf(iter)) != null;
 
-    const init = switch (@typeInfo(Dest orelse T)) {
-        .Int, .Float => @as(Dest orelse T, 1),
-        .Vector => @as(Dest orelse T, @splat(1)),
-        else => @panic("sum: unsupported type"),
+    const init = switch (@typeInfo(U)) {
+        .Int, .Float => @as(U, 1),
+        .Vector => @as(U, @splat(1)),
+        else => std.debug.panic("product: unsupported type: {}", .{U}),
     };
     return (if (has_error) try fold(iter, init, mul) else fold(iter, init, mul));
 }
 
 const testing = @import("std").testing;
 
-test "sum ints" {
+test "mul ints" {
     const slice: []const u32 = &.{ 1, 2, 3, 4, 5 };
     try testing.expectEqual(@as(u32, 120), product(null, sliceIter(u32, slice)));
 }
@@ -45,12 +46,12 @@ test "mul u32 as u33" {
     try testing.expectEqual(@as(u33, std.math.maxInt(u33) - 1), product(u33, sliceIter(u32, slice)));
 }
 
-test "sum floats" {
+test "mul floats" {
     const slice: []const f32 = &.{ 1, 2, 3, 4, 5 };
     try testing.expectEqual(@as(f32, 120), product(null, sliceIter(f32, slice)));
 }
 
-test "sum vectors" {
+test "mul vectors" {
     const slice: []const @Vector(2, u32) = &.{
         @Vector(2, u32){ 1, 2 },
         @Vector(2, u32){ 3, 4 },
@@ -59,7 +60,7 @@ test "sum vectors" {
     try testing.expectEqual(@Vector(2, u32){ 15, 48 }, product(null, sliceIter(@Vector(2, u32), slice)));
 }
 
-test "sum empty" {
+test "mul empty" {
     const slice: []const u32 = &.{};
     try testing.expectEqual(@as(u32, 1), product(null, sliceIter(u32, slice)));
 
@@ -70,7 +71,7 @@ test "sum empty" {
     try testing.expectEqual(@Vector(2, u32){ 1, 1 }, product(null, sliceIter(@Vector(2, u32), slice3)));
 }
 
-test "sum error" {
+test "mul error" {
     const iter = TestErrorIter.init(5);
     try testing.expectError(error.TestErrorIterError, product(null, iter));
 }
