@@ -52,6 +52,28 @@ pub fn IterMethods(comptime Iter: type) type {
             return .{ .iter = it.filterContext(self.iter, context, predicate) };
         }
 
+        pub fn filterMap(
+            self: Self,
+            comptime func: anytype,
+        ) IterMethods(it.FilterMapIter(
+            Iter,
+            it.validateFilterMapFn(Item(Iter), func),
+        )) {
+            return .{ .iter = it.filterMap(self.iter, func) };
+        }
+
+        pub fn filterMapContext(
+            self: Self,
+            context: anytype,
+            comptime func: anytype,
+        ) IterMethods(it.FilterMapContextIter(
+            Iter,
+            @TypeOf(context),
+            it.validateFilterMapContextFn(Item(Iter), @TypeOf(context), func),
+        )) {
+            return .{ .iter = it.filterMapContext(self.iter, context, func) };
+        }
+
         pub fn find(
             self: *Self,
             comptime predicate: fn (*const Item(Iter)) bool,

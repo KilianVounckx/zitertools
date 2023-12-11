@@ -32,9 +32,9 @@ pub fn product(comptime Dest: ?type, iter: anytype) Product(@TypeOf(iter), Dest)
         .ErrorUnion => |ErrorUnion| switch (@typeInfo(ErrorUnion.payload)) {
             .Int, .Float => @as(ErrorUnion.payload, 1),
             .Vector => @as(ErrorUnion.payload, @splat(1)),
-            else => std.debug.panic("product: unsupported type: {}", .{ErrorUnion.payload}),
+            else => @panic("[product] unsupported type: " ++ @typeName(ErrorUnion.payload)),
         },
-        else => std.debug.panic("product: unsupported type: {}", .{U}),
+        else => @panic("[product] unsupported type: " ++ @typeName(U)),
     };
     return (if (has_error) try fold(iter, init, mul) else fold(iter, init, mul));
 }
