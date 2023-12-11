@@ -8,7 +8,7 @@ This package is heavily based on rust's `std::iter` module.
 
 To use this package, use the zig package manager. For example in your build.zig.zon file, put:
 
-```zod
+```zig
 .{
     .name = "app",
     .version = "0.1.0",
@@ -23,7 +23,7 @@ To use this package, use the zig package manager. For example in your build.zig.
 When running zig build now, zig will tell you you need a hash for the dependency and provide one.
 Put it in you dependency so it looks like:
 
-```zod
+```zig
 .{
   .zitertools = .{
       .url = "https://github.com/DanikVitek/zitertools/archive/$COMMIT_YOU_WANT_TO_USE.tar.gz",
