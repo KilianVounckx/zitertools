@@ -10,16 +10,17 @@ const sliceIter = itertools.sliceIter;
 ///
 /// See `map` for more info.
 pub fn MapIter(comptime BaseIter: type, comptime func: anytype) type {
+    const Fn = @typeInfo(@TypeOf(func)).Fn;
     return struct {
         const Self = @This();
 
         base_iter: BaseIter,
 
-        pub const Dest: type = switch (@typeInfo(@typeInfo(@TypeOf(func)).Fn.return_type.?)) {
+        pub const Dest: type = switch (@typeInfo(Fn.return_type.?)) {
             .ErrorUnion => |EU| EU.payload,
-            else => @typeInfo(@TypeOf(func)).Fn.return_type.?,
+            else => Fn.return_type.?,
         };
-        pub const DestES: ?type = switch (@typeInfo(@typeInfo(@TypeOf(func)).Fn.return_type.?)) {
+        pub const DestES: ?type = switch (@typeInfo(Fn.return_type.?)) {
             .ErrorUnion => |EU| EU.error_set,
             else => null,
         };
@@ -29,7 +30,7 @@ pub fn MapIter(comptime BaseIter: type, comptime func: anytype) type {
             (if (DestES) |DES| DES!?Dest else ?Dest);
 
         pub fn next(self: *Self) Next {
-            const maybe_item = if (@typeInfo(Next) == .ErrorUnion)
+            const maybe_item = if (IterError(BaseIter) != null)
                 try self.base_iter.next()
             else
                 self.base_iter.next();
@@ -71,7 +72,7 @@ pub fn MapContextIter(
             (if (DestES) |DES| DES!?Dest else ?Dest);
 
         pub fn next(self: *Self) Next {
-            const maybe_item = if (@typeInfo(Next) == .ErrorUnion)
+            const maybe_item = if (IterError(BaseIter) != null)
                 try self.base_iter.next()
             else
                 self.base_iter.next();
