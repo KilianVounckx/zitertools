@@ -156,6 +156,21 @@ pub fn IterMethods(comptime Iter: type) type {
         pub inline fn product(self: Self, comptime Dest: ?type) it.Product(Iter, Dest) {
             return it.product(Dest, self.iter);
         }
+
+        pub inline fn forEach(
+            self: Self,
+            comptime func: fn (Item(Iter)) void,
+        ) void {
+            return it.forEach(self.iter, func);
+        }
+
+        pub inline fn forEachContext(
+            self: Self,
+            context: anytype,
+            comptime func: fn (@TypeOf(context), Item(Iter)) void,
+        ) void {
+            return it.forEachContext(self.iter, context, func);
+        }
     };
 }
 
