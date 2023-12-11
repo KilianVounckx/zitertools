@@ -9,31 +9,31 @@ const range = itertools.range;
 /// An new iterator where each successive item is computed based on the preceding one.
 ///
 /// See `successors` for more info.
-pub fn SuccessorsIter(comptime T: type, comptime func: fn (T) ?T) type {
+pub fn SuccessorsIter(comptime T: type, comptime succ: fn (*const T) ?T) type {
     return struct {
         const Self = @This();
 
-        current: ?T,
+        next_item: ?T,
 
         pub fn next(self: *Self) ?T {
-            const current = self.current orelse return null;
-            self.current = func(current);
-            return current;
+            const item: T = self.next_item orelse return null;
+            self.next_item = succ(&item);
+            return item;
         }
     };
 }
 
-pub fn SuccessorsContextIter(comptime T: type, comptime Context: type, comptime func: fn (Context, T) ?T) type {
+pub fn SuccessorsContextIter(comptime T: type, comptime Context: type, comptime succ: fn (Context, *const T) ?T) type {
     return struct {
         const Self = @This();
 
-        current: ?T,
+        next_item: ?T,
         context: Context,
 
         pub fn next(self: *Self) ?T {
-            const current = self.current orelse return null;
-            self.current = func(self.context, current);
-            return current;
+            const item: T = self.next_item orelse return null;
+            self.next_item = succ(self.context, &item);
+            return item;
         }
     };
 }
@@ -41,36 +41,38 @@ pub fn SuccessorsContextIter(comptime T: type, comptime Context: type, comptime 
 /// Creates a new iterator where each successive item is computed based on the
 /// preceding one.
 ///
-/// The iterator starts with the given first item and calls the given
+/// The iterator starts with the given first item, if any, and calls the given
 /// function to compute each item’s successor.
 pub fn successors(
-    init: anytype,
-    comptime func: fn (@TypeOf(init)) ?@TypeOf(init),
-) SuccessorsIter(@TypeOf(init), func) {
-    return .{ .current = init };
+    comptime T: type,
+    first: ?T,
+    comptime succ: fn (*const T) ?T,
+) SuccessorsIter(T, succ) {
+    return .{ .next_item = first };
 }
 
 /// Creates a new iterator where each successive item is computed based on the
 /// preceding one, given the context.
 ///
-/// The iterator starts with the given first item and calls the given
+/// The iterator starts with the given first item, if any, and calls the given
 /// function to compute each item’s successor.
 pub fn successorsContext(
-    init: anytype,
+    comptime T: type,
+    first: ?T,
     context: anytype,
-    comptime func: fn (@TypeOf(context), @TypeOf(init)) ?@TypeOf(init),
-) SuccessorsContextIter(@TypeOf(init), @TypeOf(context), func) {
-    return .{ .current = init, .context = context };
+    comptime func: fn (@TypeOf(context), *const T) ?T,
+) SuccessorsContextIter(T, @TypeOf(context), func) {
+    return .{ .next_item = first, .context = context };
 }
 
 test "successors" {
     const func = struct {
-        fn func(x: u32) ?u32 {
-            if (x >= 5) return null;
-            return x + 1;
+        fn func(x: *const u32) ?u32 {
+            if (x.* >= 5) return null;
+            return x.* + 1;
         }
     }.func;
-    var iter = successors(@as(u32, 0), func);
+    var iter = successors(u32, 0, func);
     try testing.expectEqual(u32, Item(@TypeOf(iter)));
     try testing.expectEqual(@as(?u32, 0), iter.next());
     try testing.expectEqual(@as(?u32, 1), iter.next());
@@ -85,13 +87,13 @@ test "successors" {
 
 test "successorsContext fibbonacci" {
     const func = struct {
-        fn fib(context: *u32, x: u32) ?u32 {
-            defer context.* += x;
+        fn fib(context: *u32, x: *const u32) ?u32 {
+            defer context.* += x.*;
             return context.*;
         }
     }.fib;
     var context: u32 = 1;
-    var iter = successorsContext(@as(u32, 0), &context, func);
+    var iter = successorsContext(u32, 0, &context, func);
     try testing.expectEqual(u32, Item(@TypeOf(iter)));
     try testing.expectEqual(@as(?u32, 0), iter.next());
     try testing.expectEqual(@as(?u32, 1), iter.next());
